@@ -59,7 +59,7 @@ Example for Git tag creation with specific packages.
 
 ### Steps that the script does
 ```
-********************CreatePRs action ******
+********************createPR action ******
 Follow these steps in each of the repositories listed under Repositories to Release, above.
 
 1. Set bash variables for easy copy/pasting of these steps!
