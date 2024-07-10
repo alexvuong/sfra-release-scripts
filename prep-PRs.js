@@ -105,7 +105,7 @@ function updatePropertiesFile(packageName, VERSION) {
             if (content.match(regex)) {
                 content = content.replace(regex, newLine)
                 fs.writeFileSync(propertiesFilePath, content, 'utf8')
-                console.log(`Updated ${propertiesFilePath} with new version ${VERSION}`)
+                console.log(`>>Updated ${propertiesFilePath} with new version ${VERSION}`)
             }
         } else {
             console.warn(
@@ -124,7 +124,7 @@ function updatePackageJsonVersion(packageName, VERSION) {
         packageJson.version = versionWithoutV
         fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2), 'utf8')
         console.log(
-            `\x1b[33m>>Updated ${packageJsonPath} with new version ${versionWithoutV}\x1b[0m`
+            `>>Updated ${packageJsonPath} with new version ${versionWithoutV}`
         )
         // Run npm install to update package-lock.json
         execCommand('npm install')
@@ -133,16 +133,14 @@ function updatePackageJsonVersion(packageName, VERSION) {
     }
 }
 
-async function createPR(packageName, branchToUse, VERSION) {
-    console.log('\x1b[33m>Creating PR\x1b[0m')
-    // Check if PR already exists for release/${VERSION}
-    console.log(`\x1b[33m>>Checking open PRs: gh pr list --state open --base ${branchToUse}\x1b[0m`)
-    const prListOutput = execSync(`gh pr list --state open --base ${branchToUse}`).toString()
-    if (prListOutput.includes(`release/${VERSION}`)) {
-        console.log(`PR for release/${VERSION} already exists. Skipping PR creation.`)
+async function createPR(packageName, baseBranch, VERSION, releaseBranch) {
+    console.log(`\x1b[33m>>Checking open PRs: gh pr list --state open --base ${baseBranch}\x1b[0m`)
+    const prListOutput = execSync(`gh pr list --state open --base ${baseBranch}`).toString()
+    if (prListOutput.includes(releaseBranch)) {
+        console.log(`PR for ${releaseBranch} already exists. Skipping PR creation.`)
     } else {
-        console.log(`\x1b[33m>>Creating PRs: gh pr list --state open --base ${branchToUse}\x1b[0m`)
-        const createPrOutput = execSync(`gh pr create --fill --base ${branchToUse}`).toString()
+        console.log(`\x1b[33m>>Creating PRs: gh pr list --state open --base ${baseBranch}\x1b[0m`)
+        const createPrOutput = execSync(`gh pr create --fill --base ${baseBranch}`).toString()
         const prNumberMatch = createPrOutput.match(/(\d+)/) // Extract PR number from output
         const prNumber = prNumberMatch ? prNumberMatch[0] : null
 
@@ -158,6 +156,7 @@ async function createPR(packageName, branchToUse, VERSION) {
 
 async function checkForChanges(promptUserForCommit = true, commitMsg = 'commit changed files') {
     try {
+        console.log('\x1b[33m>Checking for changes\x1b[0m')
         const status = execSync('git status --porcelain').toString()
         if (status) {
             console.log('You have uncommitted changes:')
@@ -181,11 +180,12 @@ async function checkForChanges(promptUserForCommit = true, commitMsg = 'commit c
                 }
                 execCommand(`git commit -m "${commitMessage}"`)
             } else {
-                console.log('changedFiles', changedFiles)
+                console.log('ChangedFiles', changedFiles)
                 for (const file of changedFiles) {
                     execCommand(`git add ${file}`)
                 }
-                execCommand(`git commit -m "chore: ${commitMsg}"`)
+                console.log('>>>>>Commiting changed files')
+                execCommand(`git commit -m "${commitMsg}"`)
             }
         }
     } catch (error) {
@@ -194,9 +194,9 @@ async function checkForChanges(promptUserForCommit = true, commitMsg = 'commit c
     }
 }
 async function updateChangelog(packageName) {
+    console.log('\x1b[33m>Updating changelog\x1b[0m')
+
     const basePath = __dirname.split('sfra-release')
-    console.log('_dirname', __dirname)
-    console.log('basePath', basePath[0])
     const packagePath = path.resolve(basePath[0], packageName)
     const pkg = path.resolve(packagePath, 'package.json')
     const pkgContent = JSON.parse(fs.readFileSync(pkg, 'utf8'))
@@ -204,7 +204,7 @@ async function updateChangelog(packageName) {
     const heading = `## v${pkgContent.version} (${date[0]} ${date[1]}, ${date[2]})`
 
     const changelogPath = path.resolve(packagePath, 'CHANGELOG.md')
-    if (!fs.existsSync(xmlFile)) {
+    if (!fs.existsSync(changelogPath)) {
         console.error('no CHANGELOG file found')
     }
     let currentChangeLog = fs.readFileSync(changelogPath, 'utf8')
@@ -223,7 +223,7 @@ async function updateChangelog(packageName) {
         fs.appendFileSync(tempChangeLog, heading, 'utf8')
         fs.appendFileSync(tempChangeLog, currentChangeLog, 'utf8')
         fs.copyFileSync(tempChangeLog, changelogPath)
-        console.log('Updated Changelog.')
+        console.log('Changelog updated.')
     }
 }
 async function updateStorefrontData(packageName, VERSION) {
@@ -263,33 +263,33 @@ async function preparePRsToRelease(VERSION, packages = defaultPackages) {
 
         process.chdir(packagePath)
 
-        const branchToUse =
+        const baseBranch =
             packageName === 'storefront-reference-architecture'
                 ? 'integration'
                 : packageName === 'plugin-slas'
                   ? 'main'
                   : 'master'
-        console.log(`\x1b[33m> Switching to ${branchToUse} branch \x1b[0m`)
+        console.log(`\x1b[33m> Switching to ${baseBranch} branch \x1b[0m`)
         await checkForChanges()
-        execCommand(`git switch ${branchToUse}`)
+        execCommand(`git switch ${baseBranch}`)
         execCommand('git pull')
 
         await checkForChanges()
 
         console.log('\x1b[33m> Switching to release branch \x1b[0m')
-        const branchName = `test/${VERSION}`
+        const releaseBranch = `test/${VERSION}`
         let branchExists = false
 
         try {
-            execSync(`git rev-parse --verify ${branchName}`)
+            execSync(`git rev-parse --verify ${releaseBranch}`)
             branchExists = true
         } catch (err) {
             branchExists = false
         }
         if (branchExists) {
-            execCommand(`git switch ${branchName}`)
+            execCommand(`git switch ${releaseBranch}`)
         } else {
-            execCommand(`git switch -c ${branchName}`)
+            execCommand(`git switch -c ${releaseBranch}`)
         }
 
         console.log('\x1b[33m> Running npm install')
@@ -301,21 +301,26 @@ async function preparePRsToRelease(VERSION, packages = defaultPackages) {
             await updateStorefrontData(packageName, VERSION)
         }
         updatePackageJsonVersion(packageName, VERSION)
-        await checkForChanges(false, `chore: release ${VERSION}`)
-        console.log(
-            `\x1b[33m> Pushing the change to remote branch: git push -u origin ${branchName}\x1b[0m`
-        )
 
 
 
         await updateChangelog(packageName, VERSION)
 
-        // execCommand(`git push -u origin ${branchName}`)
-        // const prURL = await createPR(packageName, branchToUse, VERSION)
+        await checkForChanges(false, `chore: release ${VERSION}`)
+        //
+        // console.log(
+        //     `\x1b[33m> Pushing the change to remote branch: git push -u origin ${releaseBranch}\x1b[0m`
+        // )
+        // execCommand(`git push -u origin ${releaseBranch}`)
+        // const prURL = await createPR(packageName, baseBranch, VERSION, releaseBranch)
+        //
+        //
         // if (prURL) {
+        //     console.log(
+        //         `\x1b[33m> List of PRs created\x1b[0m`
+        //     )
         //     createdPRs.push(prURL)
         // }
-
 
         process.chdir('..')
     }
