@@ -206,6 +206,7 @@ async function updateChangelog(packageName) {
     const changelogPath = path.resolve(packagePath, 'CHANGELOG.md')
     if (!fs.existsSync(changelogPath)) {
         console.error('no CHANGELOG file found')
+        return
     }
     let currentChangeLog = fs.readFileSync(changelogPath, 'utf8')
     // Check if the heading already exists in the changelog
@@ -277,7 +278,7 @@ async function preparePRsToRelease(VERSION, packages = defaultPackages) {
         await checkForChanges()
 
         console.log('\x1b[33m> Switching to release branch \x1b[0m')
-        const releaseBranch = `test/${VERSION}`
+        const releaseBranch = `release/${VERSION}`
         let branchExists = false
 
         try {
@@ -307,20 +308,20 @@ async function preparePRsToRelease(VERSION, packages = defaultPackages) {
         await updateChangelog(packageName, VERSION)
 
         await checkForChanges(false, `chore: release ${VERSION}`)
-        //
-        // console.log(
-        //     `\x1b[33m> Pushing the change to remote branch: git push -u origin ${releaseBranch}\x1b[0m`
-        // )
-        // execCommand(`git push -u origin ${releaseBranch}`)
-        // const prURL = await createPR(packageName, baseBranch, VERSION, releaseBranch)
-        //
-        //
-        // if (prURL) {
-        //     console.log(
-        //         `\x1b[33m> List of PRs created\x1b[0m`
-        //     )
-        //     createdPRs.push(prURL)
-        // }
+
+        console.log(
+            `\x1b[33m> Pushing the change to remote branch: git push -u origin ${releaseBranch}\x1b[0m`
+        )
+        execCommand(`git push -u origin ${releaseBranch}`)
+        const prURL = await createPR(packageName, baseBranch, VERSION, releaseBranch)
+
+
+        if (prURL) {
+            console.log(
+                `\x1b[33m> List of PRs created\x1b[0m`
+            )
+            createdPRs.push(prURL)
+        }
 
         process.chdir('..')
     }
