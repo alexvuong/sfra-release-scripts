@@ -19,7 +19,6 @@ const defaultPackages = [
     'plugin_ordermanagement',
     'plugin_productcompare',
     'plugin_sitemap',
-    'plugin_slas',
     'plugin_wishlists',
     'storefrontdata',
     'storefront-reference-architecture'
