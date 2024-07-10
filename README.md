@@ -58,8 +58,6 @@ Example for Git tag creation with specific packages.
 ### Steps that the script does
 ```
 ********************createPR action ******
-Follow these steps in each of the repositories listed under Repositories to Release, above.
-
 1. Set bash variables for easy copy/pasting of these steps!
 2. VERSION="v0.0.0" # Set to the new release version. Include the v!
     MAIN_BRANCH="master" # Use "integration" for SFRA base and "develop" for plugin_slas
@@ -109,9 +107,6 @@ Follow these steps in each of the repositories listed under Repositories to Rele
     git pull
     git tag $VERSION
     git push origin refs/tags/$VERSION
-15. Create a GitHub release.
-16. # Use the web UI or the CLI
-    gh release view --web
 
 ```
 
