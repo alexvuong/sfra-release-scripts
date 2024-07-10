@@ -303,8 +303,6 @@ async function preparePRsToRelease(VERSION, packages = defaultPackages) {
         }
         updatePackageJsonVersion(packageName, VERSION)
 
-
-
         await updateChangelog(packageName, VERSION)
 
         await checkForChanges(false, `chore: release ${VERSION}`)
