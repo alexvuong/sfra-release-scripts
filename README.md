@@ -13,10 +13,9 @@ gh auth login
 # How to use
 
 ```
-node ./prep-PR.js.js <VERSION> <MAIN_BRANCH> <action> [<package1> <package2> ... <packageN>]
+node ./prep-PR.js.js <VERSION> <action> [<package1> <package2> ... <packageN>]
 ```
 - VERSION: the version you want to upgrade to
-- MAIN_BRAIN: the base branch to branch of for release
 - action
   - createPRs: to prepare the data (update version, do any necessary file changes in all the cartridges) and create PRs for the release branch
   - createGitTag: After all of the PRs are approved and merged, you want to make sure you create and push new tags to all of the cartridges.
@@ -26,13 +25,13 @@ node ./prep-PR.js.js <VERSION> <MAIN_BRANCH> <action> [<package1> <package2> ...
 Example for PR creation with specific packages:
 
 ```
->node prep-PR.js v1.0.0 main createPR lib_productlist plugin-applepay
+>node prep-PR.js v1.0.0 createPR lib_productlist plugin-applepay
 
 ```
 
 Example for PR creation with default packages.
 ```
->node prep-PR.js v1.0.0 main createPR
+>node prep-PR.js v1.0.0 createPR
 
 // default packages
 const defaultPackages = [
@@ -45,7 +44,7 @@ const defaultPackages = [
     'plugin_ordermanagement',
     'plugin_productcompare',
     'plugin_sitemap',
-    // 'plugin_slas',
+    'plugin_slas',
     'plugin_wishlists',
     'storefrontdata',
     'storefront-reference-architecture'
@@ -54,7 +53,7 @@ const defaultPackages = [
 
 Example for Git tag creation with specific packages.
 ```
->node prep-PR.js v1.0.0 main createGitTag lib_productlist plugin-applepay
+>node prep-PR.js v1.0.0 createGitTag lib_productlist plugin-applepay
 ```
 
 ### Steps that the script does

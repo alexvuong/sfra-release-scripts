@@ -230,10 +230,9 @@ async function updateStorefrontData(packageName, VERSION) {
         }
     }
 }
-async function preparePRsToRelease(VERSION, MAIN_BRANCH, packages = defaultPackages) {
+async function preparePRsToRelease(VERSION, packages = defaultPackages) {
     console.log('\x1b[36m%s\x1b[0m', '======================= PR Creation Step =================')
     console.log(`\nVersion: ${VERSION}`)
-    console.log(`Main Branch: ${MAIN_BRANCH}`)
     console.log(`Packages: ${packages.join(', ')}\n`)
     const createdPRs = []
     for (const packageName of packages) {
@@ -252,14 +251,13 @@ async function preparePRsToRelease(VERSION, MAIN_BRANCH, packages = defaultPacka
 
         process.chdir(packagePath)
 
-        console.log('\x1b[33m> Switching to main/master branch \x1b[0m')
         const branchToUse =
             packageName === 'storefront-reference-architecture'
                 ? 'integration'
                 : packageName === 'plugin-slas'
                   ? 'main'
-                  : MAIN_BRANCH
-
+                  : 'master'
+        console.log(`\x1b[33m> Switching to ${branchToUse} branch \x1b[0m`)
         await checkForChanges()
         execCommand(`git switch ${branchToUse}`)
         execCommand('git pull')
@@ -267,7 +265,7 @@ async function preparePRsToRelease(VERSION, MAIN_BRANCH, packages = defaultPacka
         await checkForChanges()
 
         console.log('\x1b[33m> Switching to release branch \x1b[0m')
-        const branchName = `release/${VERSION}`
+        const branchName = `test/${VERSION}`
         let branchExists = false
 
         try {
@@ -295,14 +293,17 @@ async function preparePRsToRelease(VERSION, MAIN_BRANCH, packages = defaultPacka
         console.log(
             `\x1b[33m> Pushing the change to remote branch: git push -u origin ${branchName}\x1b[0m`
         )
-        execCommand(`git push -u origin ${branchName}`)
 
-        const prURL = await createPR(packageName, branchToUse, VERSION)
-        if (prURL) {
-            createdPRs.push(prURL)
-        }
+
 
         await updateChangelog()
+
+        // execCommand(`git push -u origin ${branchName}`)
+        // const prURL = await createPR(packageName, branchToUse, VERSION)
+        // if (prURL) {
+        //     createdPRs.push(prURL)
+        // }
+
 
         process.chdir('..')
     }
@@ -311,7 +312,7 @@ async function preparePRsToRelease(VERSION, MAIN_BRANCH, packages = defaultPacka
     })
 }
 
-async function createGitTag(VERSION, MAIN_BRANCH, packagesToProcess) {
+async function createGitTag(VERSION, packagesToProcess) {
     for (const packageName of packagesToProcess) {
         console.log(
             '\x1b[36m%s\x1b[0m',
@@ -353,35 +354,35 @@ async function createGitTag(VERSION, MAIN_BRANCH, packagesToProcess) {
 
 async function main() {
     const args = process.argv.slice(2)
-    if (args.length < 3) {
+    if (args.length < 2) {
         console.error(
-            'Usage: node prep-PR.js.js <VERSION> <MAIN_BRANCH> <action> [<package1> <package2> ... <packageN>]'
+            'Usage: node prep-PR.js.js <VERSION> <action> [<package1> <package2> ... <packageN>]'
         )
         console.error(
-            'Example for PR creation with specific packages: node prep-PR.js v1.0.0 main createPR lib_productlist plugin-applepay'
+            'Example for PR creation with specific packages: node prep-PR.js v1.0.0 createPR lib_productlist plugin-applepay'
         )
         console.error(
-            'Example for PR creation with default packages: node prep-PR.js v1.0.0 main createPR'
+            'Example for PR creation with default packages: node prep-PR.js v1.0.0 createPR'
         )
         console.error(
-            'Example for Git tag creation with specific packages: node prep-PR.js v1.0.0 main createGitTag lib_productlist plugin-applepay'
+            'Example for Git tag creation with specific packages: node prep-PR.js v1.0.0 createGitTag lib_productlist plugin-applepay'
         )
         console.error(
-            'Example for Git tag creation with default packages: node prep-PR.js v1.0.0 main createGitTag'
+            'Example for Git tag creation with default packages: node prep-PR.js v1.0.0 createGitTag'
         )
         process.exit(1)
     }
 
-    const [VERSION, MAIN_BRANCH, action, ...packages] = args
+    const [VERSION, action, ...packages] = args
 
     let packagesToProcess = packages.length > 0 ? packages : defaultPackages
 
     switch (action) {
         case 'createPR':
-            await preparePRsToRelease(VERSION, MAIN_BRANCH, packagesToProcess)
+            await preparePRsToRelease(VERSION, packagesToProcess)
             break
         case 'createGitTag':
-            await createGitTag(VERSION, MAIN_BRANCH, packagesToProcess)
+            await createGitTag(VERSION, packagesToProcess)
             break
         default:
             console.error('Invalid action. Please specify either "createPR" or "createGitTag".')
