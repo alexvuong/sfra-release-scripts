@@ -195,6 +195,8 @@ async function checkForChanges(promptUserForCommit = true, commitMsg = 'commit c
 }
 async function updateChangelog(packageName) {
     const basePath = __dirname.split('sfra-release')
+    console.log('_dirname', __dirname)
+    console.log('basePath', basePath[0])
     const packagePath = path.resolve(basePath[0], packageName)
     const pkg = path.resolve(packagePath, 'package.json')
     const pkgContent = JSON.parse(fs.readFileSync(pkg, 'utf8'))
@@ -202,7 +204,17 @@ async function updateChangelog(packageName) {
     const heading = `## v${pkgContent.version} (${date[0]} ${date[1]}, ${date[2]})`
 
     const changelogPath = path.resolve(packagePath, 'CHANGELOG.md')
+    if (!fs.existsSync(xmlFile)) {
+        console.error('no CHANGELOG file found')
+    }
     let currentChangeLog = fs.readFileSync(changelogPath, 'utf8')
+    // Check if the heading already exists in the changelog
+    if (currentChangeLog.includes(pkgContent.version)) {
+        console.log(`Changelog already updated with version ${pkgContent.version}. Skipping update.`);
+        return;
+    }
+
+
     const title = /# Changelog/
     const tempChangeLog = path.resolve(os.tmpdir(), 'CHANGELOG.md')
     if (currentChangeLog.match(title)) {
@@ -221,7 +233,7 @@ async function updateStorefrontData(packageName, VERSION) {
     const xmlFile = path.resolve('demo_data_sfra/libraries/RefArchSharedLibrary/library.xml')
     if (fs.existsSync(xmlFile)) {
         let content = fs.readFileSync(xmlFile, 'utf8')
-        const regex = /&lt;!-- SFRA 7.0.0/g
+        const regex = /&lt;!-- SFRA \d+\.\d+\.\d+/g
         const newLine = `&lt;!-- SFRA ${versionWithoutV}`
         if (content.match(regex)) {
             content = content.replace(regex, newLine)
@@ -296,7 +308,7 @@ async function preparePRsToRelease(VERSION, packages = defaultPackages) {
 
 
 
-        await updateChangelog()
+        await updateChangelog(packageName, VERSION)
 
         // execCommand(`git push -u origin ${branchName}`)
         // const prURL = await createPR(packageName, branchToUse, VERSION)
